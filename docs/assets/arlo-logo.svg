@@ -1,0 +1,15 @@
+<svg width="200" height="200" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Owl face -->
+  <circle cx="12" cy="12" r="8" fill="#0a0a0a"/>
+  <!-- Eye whites -->
+  <circle cx="9.5" cy="11" r="3.2" fill="#fafafa"/>
+  <circle cx="14.5" cy="11" r="3.2" fill="#fafafa"/>
+  <!-- Pupils -->
+  <circle cx="9.5" cy="11" r="1.25" fill="#0a0a0a"/>
+  <circle cx="14.5" cy="11" r="1.25" fill="#0a0a0a"/>
+  <!-- Eye highlights -->
+  <circle cx="10.1" cy="10.35" r="0.45" fill="#fafafa"/>
+  <circle cx="15.1" cy="10.35" r="0.45" fill="#fafafa"/>
+  <!-- Beak -->
+  <path d="M 10.5 15 L 12 17 L 13.5 15 Z" fill="#fafafa"/>
+</svg>
