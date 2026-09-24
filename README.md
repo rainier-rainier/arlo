@@ -10,7 +10,7 @@
 [![Node.js](https://img.shields.io/badge/Node.js-20+-green.svg)](https://nodejs.org/)
 [![Zoom RTMS](https://img.shields.io/badge/Zoom-RTMS-2D8CFF.svg)](https://www.zoom.com/en/realtime-media-streams/)
 
-[Get Started](#-quick-start) · [See Demos](#-see-it-in-action) · [Features](#-features) · [Troubleshooting](#-troubleshooting)
+[Get Started](#quick-start) · [See Demos](#see-it-in-action) · [Features](#features) · [Troubleshooting](#troubleshooting)
 
 </div>
 
