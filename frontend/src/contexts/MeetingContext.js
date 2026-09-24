@@ -6,7 +6,7 @@ import { useServerSettings } from './ServerSettingsContext';
 const MeetingContext = createContext();
 
 const DEFAULT_CHAT_NOTICES = {
-  enabled: true,
+  enabled: false,
   events: { start: true, pause: true, resume: true, stop: false, restart: false },
   messages: {
     start: "I'm using a Zoom app, Arlo, to transcribe this meeting and generate a summary.",
