@@ -47,6 +47,22 @@ Arlo is an **open-source reference implementation** that demonstrates the power 
 
 > **Note:** This is a starting point for developers. The industry verticals are illustrative examples showing what's possible with RTMS.
 
+### Demo Mode (No Database)
+
+This version of Arlo runs in **secure demo mode** — no database required. Your meeting data is processed in real-time and **never stored**:
+
+- **Live transcription** and AI features work fully during active meetings
+- **No persistent storage** — data exists only in memory during your session
+- **No database setup** — just configure Zoom credentials and go
+
+**Want to add persistence?** If you're building a production app and need to store meeting history, search transcripts, or enable features like auto-open meetings, you'll want to add a database. We recommend:
+
+1. **Choose a database** — MySQL, PostgreSQL, or your preferred data store
+2. **Add an ORM** — Prisma works well with Node.js
+3. **Store selectively** — Only persist what users consent to store
+
+See the [Architecture docs](./docs/ARCHITECTURE.md) for database schema recommendations.
+
 ---
 
 ## See It In Action
@@ -86,6 +102,11 @@ Arlo is an **open-source reference implementation** that demonstrates the power 
 | **Export Options** | Download WebVTT files or Markdown summaries |
 | **Dark Mode** | Automatic OS detection with manual toggle |
 | **Filler Word Coach** | Real-time detection of filler words with audio alerts (Sales vertical) |
+| **AI Sentiment Analysis** | Real-time customer sentiment tracking with trend visualization (Support vertical) |
+| **Compliance Advisor** | Real-time compliance monitoring for regulated industries |
+| **Guest Access** | Non-authenticated users can view transcripts via meeting links |
+| **Collapsible UI Cards** | Expandable/collapsible cards for cleaner interface management |
+| **Drag-and-Drop Layout** | Reorder and customize card positions in the meeting view |
 | **Show AI Prompts** | Developer tool to inspect the AI prompts powering each feature |
 | **Industry Verticals** | Specialized modes: Arlo for Notes, Healthcare, Legal, Sales, and Support |
 
@@ -167,7 +188,7 @@ Before you begin, ensure you have:
 | Requirement | Why You Need It |
 |-------------|-----------------|
 | **[Node.js 20+](https://nodejs.org/)** | Runtime for backend services |
-| **[Docker Desktop](https://www.docker.com/products/docker-desktop/)** | Runs MySQL and all services |
+| **[Docker Desktop](https://www.docker.com/products/docker-desktop/)** | Runs all services in containers |
 | **[ngrok](https://ngrok.com/)** | Creates secure tunnels for Zoom webhooks |
 | **[Zoom Account](https://marketplace.zoom.us/)** | To create and configure your Zoom App |
 
@@ -230,8 +251,8 @@ ZOOM_CLIENT_SECRET=your_client_secret
 PUBLIC_URL=https://your-name.ngrok-free.app
 
 # Generate secrets (run these commands, paste the output)
-SESSION_SECRET=       # node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
-REDIS_ENCRYPTION_KEY= # node -e "console.log(require('crypto').randomBytes(16).toString('hex'))"
+SESSION_SECRET=            # node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+TOKEN_ENCRYPTION_KEY=      # node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
 ```
 
 ---
@@ -298,7 +319,6 @@ docker-compose up --build
 ```
 
 Wait for all services to start:
-- MySQL database
 - Backend API (port 3000)
 - Frontend (port 3001)
 - RTMS service (port 3002)
@@ -432,27 +452,6 @@ GET /api/ai/prompts/:id      # Get specific prompt (summary, sentiment, soapNote
 ## Troubleshooting
 
 <details>
-<summary><strong>Database / Prisma Errors</strong></summary>
-
-**"Cannot find module '.prisma/client'"**
-```bash
-docker-compose exec backend npx prisma generate
-docker-compose restart backend
-```
-
-**"Can't reach database server"**
-```bash
-docker-compose restart mysql backend
-```
-
-**Tables don't exist**
-```bash
-docker-compose exec backend npx prisma db push
-```
-
-</details>
-
-<details>
 <summary><strong>Clean Restart</strong></summary>
 
 If you're having persistent issues:
@@ -509,9 +508,10 @@ See the full [Troubleshooting Guide](./docs/TROUBLESHOOTING.md) for additional i
 
 ```
 arlo/
-├── backend/           # Express API server + Prisma ORM
+├── backend/           # Express API server
 ├── frontend/          # React Zoom App (CRA)
 ├── rtms/              # RTMS transcript ingestion service
+├── terraform/         # AWS deployment configuration
 ├── docs/              # Documentation
 └── docker-compose.yml # Development environment
 ```
@@ -523,7 +523,6 @@ docker-compose up                    # Start all services
 docker-compose logs -f backend       # View backend logs
 docker-compose restart backend       # Restart a service
 docker-compose down -v               # Stop and remove volumes
-npm run db:studio                    # Open Prisma database GUI
 ```
 
 ### Tech Stack
@@ -531,8 +530,8 @@ npm run db:studio                    # Open Prisma database GUI
 | Layer | Technology |
 |-------|------------|
 | Frontend | React 18, Zoom Apps SDK, Base UI |
-| Backend | Node.js 20, Express, Prisma |
-| Database | MySQL 8.0 |
+| Backend | Node.js 20, Express |
+| Storage | In-memory (demo mode) |
 | AI | OpenRouter (free models available) |
 | Real-time | WebSocket + RTMS SDK |
 
@@ -580,7 +579,7 @@ The easiest way to deploy Arlo to production is with [Render](https://render.com
 
 [![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/zoom/arlo)
 
-This deploys all services (backend, frontend, RTMS, MySQL) with automatic secret generation. After deployment:
+This deploys all services (backend, frontend, RTMS) with automatic secret generation. After deployment:
 
 1. Add your Zoom credentials in the Render dashboard:
    - `ZOOM_CLIENT_ID`
@@ -593,6 +592,26 @@ See [`render.yaml`](./render.yaml) for the full infrastructure configuration.
 
 ---
 
+### Deploy to AWS (Terraform)
+
+For AWS deployment, use the Terraform configuration in the `terraform/` directory:
+
+```bash
+cd terraform
+terraform init
+terraform plan
+terraform apply
+```
+
+This provisions:
+- EC2 instances for backend and RTMS services
+- Application Load Balancer with TLS
+- Auto-generated secrets via AWS Secrets Manager
+
+See the [terraform/README.md](./terraform/README.md) for detailed AWS setup instructions.
+
+---
+
 ### Production Considerations
 
 This reference implementation is designed for **learning and prototyping**. Before production deployment:
@@ -600,10 +619,11 @@ This reference implementation is designed for **learning and prototyping**. Befo
 | Area | Development | Production Recommendation |
 |------|-------------|---------------------------|
 | **Credentials** | `.env` file | Secrets manager (AWS, Vault, Azure) |
-| **Tokens** | MySQL + AES | Add encryption at rest |
+| **Tokens** | In-memory + AES | Database with encryption at rest |
 | **Sessions** | In-memory | Redis or database-backed |
 | **HTTPS** | ngrok tunnel | Load balancer with TLS |
 | **WebSockets** | Single instance | Redis pub/sub for scaling |
+| **Data Storage** | None (demo mode) | Add database for persistence |
 
 See [Known Limitations](#known-limitations) for additional considerations.
 
