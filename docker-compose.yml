@@ -7,7 +7,7 @@ services:
       context: ./backend
       dockerfile: Dockerfile
     container_name: arlo-meeting-assistant-backend
-    restart: unless-stopped
+    restart: "no"
     env_file:
       - .env
     environment:
@@ -15,7 +15,7 @@ services:
       LOG_LEVEL: ${LOG_LEVEL:-info}
       DEMO_MODE: "true"
     ports:
-      - "3000:3000"
+      - "127.0.0.1:3000:3000"
     volumes:
       - ./backend:/app
       - /app/node_modules
@@ -28,13 +28,13 @@ services:
       context: ./frontend
       dockerfile: Dockerfile
     container_name: arlo-meeting-assistant-frontend
-    restart: unless-stopped
+    restart: "no"
     environment:
       REACT_APP_API_URL: http://localhost:3000
       REACT_APP_WS_URL: ws://localhost:3000
       DANGEROUSLY_DISABLE_HOST_CHECK: "true"
     ports:
-      - "3001:3000"
+      - "127.0.0.1:3001:3000"
     volumes:
       - ./frontend:/app
       - /app/node_modules
@@ -44,7 +44,7 @@ services:
 
   # RTMS Server (Zoom RTMS SDK)
   # NOTE: RTMS SDK requires x86_64/amd64 platform due to native dependencies
-  # On Apple Silicon (M1/M2/M3), this will run in Rosetta emulation
+  # On Apple Silicon, this will run under emulation.
   rtms:
     build:
       context: ./rtms
@@ -53,27 +53,34 @@ services:
         - linux/amd64
     platform: linux/amd64
     container_name: arlo-meeting-assistant-rtms
-    restart: unless-stopped
+    restart: "no"
     env_file:
       - .env
     environment:
       BACKEND_URL: http://backend:3000
+
       # Override PORT from .env to avoid conflict with backend's PORT=3000
       PORT: 3002
-      # RTMS maps ZOOM_* → ZM_RTMS_* at startup (see rtms/src/index.js); no duplicate vars needed here.
-      # ZOOM_CLIENT_ID, ZOOM_CLIENT_SECRET, and ZOOM_WEBHOOK_TOKEN come from env_file (.env)
-      # RTMS SDK v1.0 logging (replaces configureLogger())
+
+      # RTMS maps ZOOM_* -> ZM_RTMS_* at startup.
+      # ZOOM_CLIENT_ID, ZOOM_CLIENT_SECRET, and ZOOM_WEBHOOK_TOKEN
+      # come from env_file (.env).
       ZM_RTMS_LOG_LEVEL: debug
+
       # Log level for PII gating
       LOG_LEVEL: ${LOG_LEVEL:-info}
-    # Note: Port 3002 is NOT exposed to host — RTMS service is only accessible
-    # from the Docker internal network via http://rtms:3002 (from backend)
+
+    # Port 3002 is NOT published to the host.
+    # RTMS is only reachable over the Docker internal network.
     expose:
       - "3002"
+
     volumes:
       - ./rtms/src:/app/src
       - /app/node_modules
+
     depends_on:
       backend:
         condition: service_started
+
     command: npm start
